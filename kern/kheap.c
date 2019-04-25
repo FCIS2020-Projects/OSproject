@@ -37,7 +37,7 @@ void* kmalloc(unsigned int size)
 	struct Free_FRACTIONS bestfit;
 	bestfit.start = NULL;
 	int min = 100000;
-	cprintf("k");
+	//cprintf("k");
 	for(int i=0 ;i<1024 ;i++){
 		if(arr[i].counter == s)
 		{
@@ -46,9 +46,9 @@ void* kmalloc(unsigned int size)
 		}
 		else if(arr[i].counter>s && arr[i].counter-s<min)
 		{
-			cprintf("i = %d\n", i);
-			cprintf("s = %d\n", s);
-			cprintf("arr[i].start = %x\n", arr[i].start);
+			//cprintf("i = %d\n", i);
+			//cprintf("s = %d\n", s);
+			//cprintf("arr[i].start = %x\n", arr[i].start);
 			bestfit = arr[i];
 			min = arr[i].counter-s;
 		}
@@ -127,6 +127,7 @@ void kfree(void* virtual_address)
 	for(int i=0;i<counter;i++)
 	{
 		unmap_frame(ptr_page_directory , virtual_address+i*PAGE_SIZE);
+
 	}
 
 	//you need to get the size of the given allocation using its address
@@ -137,13 +138,14 @@ void kfree(void* virtual_address)
 unsigned int kheap_virtual_address(unsigned int physical_address)
 {
 	//TODO: [PROJECT 2019 - MS1 - [1] Kernel Heap] kheap_virtual_address()
-		physical_address=ROUNDDOWN(physical_address,PAGE_SIZE);
-		int fr_num=physical_address>>12;
+
+
+		int fr_num=to_frame_number(to_frame_info(physical_address));
 		uint32 *ptrPageTable1=NULL;
 		int py=0;
 		for(uint32 start=KERNEL_HEAP_START; start<KERNEL_HEAP_MAX; start+=PAGE_SIZE)
 		{
-			cprintf("start=%x\n",start);
+			//cprintf("start=%x\n",start);
 			ptrPageTable1=NULL;
 			get_page_table(ptr_page_directory,(void*)start,&ptrPageTable1);
 			if( ptrPageTable1!=NULL&&(ptrPageTable1[PTX(start)]&PERM_PRESENT) )
@@ -151,9 +153,11 @@ unsigned int kheap_virtual_address(unsigned int physical_address)
 				py=ptrPageTable1[PTX(start)]>>12;
 				if(py==fr_num)
 				{
+					start&=0xFFFFF000;
 					return start;
 				}
 			}
+
 		}
 
 	return 0;
@@ -168,7 +172,7 @@ unsigned int kheap_physical_address(unsigned int virtual_address)
 		get_page_table(ptr_page_directory,(void*)virtual_address,&ptrPageTable);
 		if(ptrPageTable!=NULL&&(ptrPageTable[PTX(virtual_address)]&PERM_PRESENT))
 		{
-			return ptrPageTable[PTX(virtual_address)];
+			return ptrPageTable[PTX(virtual_address)]&0xFFFFF000;
 		}
 		return 0;
 }
