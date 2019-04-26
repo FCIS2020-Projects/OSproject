@@ -23,6 +23,9 @@ uint32 _PageRepAlgoType;
 #define PG_REP_CLOCK 0x2
 #define PG_REP_FIFO 0x3
 #define PG_REP_MODIFIEDCLOCK  0x4
+void get_victim(struct Env* curenv,int* index,int *mod);
+void update_modified();
+void Placement(struct Env* curenv,uint32 fault_va);
 
 void idt_init(void);
 void print_regs(struct PushRegs *regs);
