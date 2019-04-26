@@ -170,7 +170,7 @@ unsigned int kheap_physical_address(unsigned int virtual_address)
 		struct Frame_Info* ptr_fr=NULL;
 
 		get_page_table(ptr_page_directory,(void*)virtual_address,&ptrPageTable);
-		if(ptrPageTable!=NULL&&(ptrPageTable[PTX(virtual_address)]&PERM_PRESENT))
+		if(ptrPageTable!=NULL)
 		{
 			return ptrPageTable[PTX(virtual_address)]&0xFFFFF000;
 		}

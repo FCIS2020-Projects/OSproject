@@ -603,3 +603,22 @@ void Placement(struct Env* curenv,uint32 fault_va)
 	}
 	cprintf("FInished Placement");
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

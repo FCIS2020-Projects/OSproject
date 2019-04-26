@@ -47,15 +47,14 @@ int test_kmalloc()
 	struct MyStruct *structArr ;
 	int lastIndexOfByte, lastIndexOfByte2, lastIndexOfShort, lastIndexOfShort2, lastIndexOfInt, lastIndexOfStruct;
 	int start_freeFrames = sys_calculate_free_frames() ;
-
 	void* ptr_allocations[20] = {0};
 	{
 		//Insufficient space
 		int freeFrames = sys_calculate_free_frames() ;
 		int freeDiskFrames = pf_calculate_free_frames() ;
 		uint32 sizeOfKHeap = (KERNEL_HEAP_MAX - ACTUAL_START + 1) ;
+
 		ptr_allocations[0] = kmalloc(sizeOfKHeap);
-		cprintf("ptr_allocations[0]=%d",ptr_allocations[0]);
 		if (ptr_allocations[0] != NULL) panic("Allocating insufficient space: should return NULL");
 		if ((pf_calculate_free_frames() - freeDiskFrames) != 0) panic("Page file is changed while it's not expected to. (pages are wrongly allocated/de-allocated in PageFile)");
 		if ((freeFrames - sys_calculate_free_frames()) != 0) panic("Wrong allocation: pages are not loaded successfully into memory");
@@ -2034,7 +2033,7 @@ int test_kheap_phys_addr()
 			{
 				if ((ptr_table[j] & 0xFFFFF000) != allPAs[i])
 				{
-					//cprintf("\nVA = %x, table entry = %x, khep_pa = %x\n",va + j*PAGE_SIZE, (ptr_table[j] & 0xFFFFF000) , allPAs[i]);
+					cprintf("\nVA = %x, table entry = %x, khep_pa = %x\n",va + j*PAGE_SIZE, (ptr_table[j] & 0xFFFFF000) , allPAs[i]);
 					panic("Wrong kheap_physical_address");
 				}
 			}

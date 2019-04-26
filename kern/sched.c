@@ -192,7 +192,6 @@ void sched_init_RR(uint8 quantum)
 	num_of_ready_queues = 1;
 	env_ready_queues = kmalloc(sizeof(struct Env_Queue));
 	quantums = kmalloc(num_of_ready_queues * sizeof(uint8)) ;
-
 	quantums[0] = quantum;
 	kclock_set_quantum(quantums[0]);
 	init_queue(&(env_ready_queues[0]));

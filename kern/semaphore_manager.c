@@ -157,39 +157,17 @@ int free_semaphore_object(uint32 semaphoreObjectID)
 int createSemaphore(int32 ownerEnvID, char* semaphoreName, uint32 initialValue)
 {
 	//TODO: [PROJECT 2019 - MS1 - [4] Semaphore] CreateSemaphore
+	// your code is here, remove the panic and write your code
+	panic("createSemaphore() is not implemented yet...!!");
+
 	//create new semaphore object and initialize it by the given info (ownerID, name, value)
 	//Return:
 	//	a) SemaphoreID (its index in the array) if succeed
 	//	b) E_SEMAPHORE_EXISTS if the semaphore is already exists
 	//	c) E_NO_SEMAPHORE if the the array of semaphores is full
+
 	//change this "return" according to your answer
-
-//	cprintf(" Hello Its me \n");
-	int GSO_ID = get_semaphore_object_ID(ownerEnvID , semaphoreName);
-	if(GSO_ID == E_SEMAPHORE_NOT_EXISTS)
-	{
-		struct Semaphore *new_semaphore ;
-		int ASO_Return = allocate_semaphore_object(&new_semaphore);
-
-		if(ASO_Return == E_NO_SEMAPHORE)
-			return E_NO_SEMAPHORE;
-		else
-		{
-			semaphores[ASO_Return].ownerID  = ownerEnvID;
-
-			const char* arg2 = semaphoreName;
-			char* arg1 = semaphores[ASO_Return].name ;
-			strcpy(arg1,arg2);
-
-			semaphores[ASO_Return].value = initialValue;
-
-			return ASO_Return;
-		}
-	}
-	else
-	{
-		return E_SEMAPHORE_EXISTS;
-	}
+	return 0;
 }
 
 //============
@@ -198,8 +176,10 @@ int createSemaphore(int32 ownerEnvID, char* semaphoreName, uint32 initialValue)
 void waitSemaphore(int32 ownerEnvID, char* semaphoreName)
 {
 	//TODO: [PROJECT 2019 - MS1 - [4] Semaphore] WAIT
-	struct Env* myenv = curenv;//The calling environment
+	// your code is here, remove the panic and write your code
+	panic("waitSemaphore() is not implemented yet...!!");
 
+	struct Env* myenv = curenv; //The calling environment
 
 	// Steps:
 	//	1) Get the Semaphore
@@ -211,25 +191,7 @@ void waitSemaphore(int32 ownerEnvID, char* semaphoreName)
 	//		d) set curenv with NULL
 	//	4) Call "fos_scheduler()" to continue running the remaining envs
 
-	int GSO_ID = get_semaphore_object_ID(ownerEnvID , semaphoreName);
-
-	semaphores[GSO_ID].value -= 1;
-
-	if(semaphores[GSO_ID].value < 0)
-	{
-		//1-remove it from ready queue
-		//2-adding to semaphore queue
-		//3-change status to env_blocked
-
-		sched_remove_ready(myenv);
-
-		//struct Env_Queue* queue -- struct Env* env
-		enqueue(&(semaphores[GSO_ID].env_queue),myenv);
-		myenv->env_status = ENV_BLOCKED;
-	}
-	fos_scheduler();
 }
-
 
 //==============
 // [3] Signal():
@@ -237,6 +199,9 @@ void waitSemaphore(int32 ownerEnvID, char* semaphoreName)
 void signalSemaphore(int ownerEnvID, char* semaphoreName)
 {
 	//TODO: [PROJECT 2019 - MS1 - [4] Semaphore] SIGNAL
+	// your code is here, remove the panic and write your code
+	panic("signalSemaphore() is not implemented yet...!!");
+
 	// Steps:
 	//	1) Get the Semaphore
 	//	2) Increment its value
@@ -245,17 +210,5 @@ void signalSemaphore(int ownerEnvID, char* semaphoreName)
 	//		b) adding it to ready queue				[refer to helper functions in doc]
 	//		c) changing its status to ENV_READY
 
-	int GSO_ID = get_semaphore_object_ID(ownerEnvID , semaphoreName);
-
-	semaphores[GSO_ID].value += 1;
-
-	if(semaphores[GSO_ID].value <= 0)
-	{
-		struct Env* env;
-		env = dequeue(&(semaphores[GSO_ID].env_queue));
-
-		env->env_status = ENV_READY;
-		sched_insert_ready(env);
-
-	}
 }
+
