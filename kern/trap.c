@@ -440,14 +440,166 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 {
 	__page_fault_handler_with_buffering(curenv, fault_va);
 }
+
 void __page_fault_handler_with_buffering(struct Env * curenv, uint32 fault_va)
 {
-	//TODO: [PROJECT 2019 - MS1 - [3] Page Fault Handler: PLACEMENT & REPLACEMENT CASES]
-	// Write your code here, remove the panic and write your code
-	panic("page_fault_handler_with_buffering() is not implemented yet...!!");
+	cprintf("fault with %x\t",fault_va);
+	struct Frame_Info *ptr_fr ;
+	if(env_page_ws_get_size(curenv)<curenv->page_WS_max_size)
+	{
+		Placement(curenv,fault_va);
+	}
+	else
+	{
+		cprintf("replacment\t");
+		int mod=-1,index=-1;
+		/****************************Modified CLock Algorithm****************************/
+		if(isPageReplacmentAlgorithmModifiedCLOCK()){
 
-	//refer to the project documentation for the detailed steps of the page fault handler
+			mod=-1;
+			index=-1;
+		/********************************victim end*****************/
+			get_victim(curenv,&index,&mod);
+		/********************************victim end*****************/
+			uint32 victim=env_page_ws_get_virtual_address(curenv,curenv->page_last_WS_index);;
+			uint32 * ptr_page_table=NULL;
 
-	//TODO: [PROJECT 2019 - BONUS6] Change WS Size according to “Program Priority”
+			ptr_fr=get_frame_info(curenv->env_page_directory,(void*)victim,&ptr_page_table);
+			if(ptr_fr==NULL)
+				panic("A working set page should exist but doesn't\n");
+			ptr_fr->isBuffered=1;
+			ptr_fr->environment=curenv;
+			pt_set_page_permissions(curenv,victim,PERM_BUFFERED,PERM_PRESENT);
+			if(mod==1)
+			{
+				cprintf("free frame\t");
+				LIST_INSERT_TAIL(&free_frame_list,ptr_fr);
+			}
+			else
+			{
+				cprintf("modified frame\t");
+				LIST_INSERT_TAIL(&modified_frame_list,ptr_fr);
+				if(getModifiedBufferLength()<=LIST_SIZE(&modified_frame_list))
+				{
+					cprintf("%d\t",getModifiedBufferLength());
+					update_modified();
+				}
+			}
+
+		}
+		Placement(curenv,fault_va);
+	}
+
+	env_page_ws_set_entry(curenv,curenv->page_last_WS_index,fault_va);
+	curenv->page_last_WS_index=(curenv->page_last_WS_index+1)%curenv->page_WS_max_size;
+	cprintf("\n");
+
 }
 
+void get_victim(struct Env* curenv,int* index,int *mod)
+{
+	*mod=-1;
+	*index=-1;
+	while((*index)==-1)
+	{
+		for(int i=0;i<curenv->page_WS_max_size;i++)
+		{
+			uint32 va=env_page_ws_get_virtual_address(curenv,curenv->page_last_WS_index);
+			uint32 perm=pt_get_page_permissions(curenv,va);
+			if((perm&(PERM_MODIFIED|PERM_USED))==0)
+			{
+				*mod=1;
+				*index=i;
+				break;
+			}
+			curenv->page_last_WS_index=(curenv->page_last_WS_index+1)%curenv->page_WS_max_size;
+		}
+		if(*mod!=-1)
+			break;
+		for(int i=0;i<curenv->page_WS_max_size;i++)
+		{
+			uint32 va=env_page_ws_get_virtual_address(curenv,curenv->page_last_WS_index);
+
+			uint32 perm=pt_get_page_permissions(curenv,va);
+			if((perm&PERM_USED)==0)
+			{
+				*index=i;
+				break;
+			}
+			pt_set_page_permissions(curenv,va,0,PERM_USED);
+			curenv->page_last_WS_index=(curenv->page_last_WS_index+1)%curenv->page_WS_max_size;
+		}
+	}
+}
+void update_modified()
+{
+	struct Frame_Info * fr=NULL;
+	uint32 va;
+	LIST_FOREACH(fr,&modified_frame_list){
+		struct Env * curenv;
+		va=fr->va;
+		curenv=fr->environment;
+
+		int ret=pf_update_env_page(curenv,(void*) va, fr);
+
+
+		LIST_REMOVE(&modified_frame_list,fr);
+		pt_set_page_permissions(curenv,va,0,PERM_MODIFIED);
+
+		LIST_INSERT_TAIL(&free_frame_list,fr);
+
+	}
+}
+void Placement(struct Env* curenv,uint32 fault_va)
+{
+	cprintf("Placment\t");
+
+	struct Frame_Info *ptr_fr ;
+	uint32 page_perm=pt_get_page_permissions(curenv,fault_va);
+
+	uint32* ptr_t;
+	if((page_perm&PERM_BUFFERED)!=0)
+	{
+		cprintf("Bufferd\t");
+		pt_set_page_permissions(curenv,fault_va,PERM_PRESENT|PERM_USER|PERM_WRITEABLE,PERM_BUFFERED);
+		ptr_fr=get_frame_info(curenv->env_page_directory,(void*)fault_va,&ptr_t);
+		if(page_perm&PERM_MODIFIED)
+		{
+			cprintf("modified\t");
+			ptr_fr->isBuffered=0;
+			LIST_REMOVE(&modified_frame_list,ptr_fr);
+
+		}
+		else
+		{
+			cprintf("free\t");
+
+			ptr_fr->isBuffered=0;
+			LIST_REMOVE(&free_frame_list,ptr_fr);
+		}
+
+	}
+	else
+	{
+		cprintf("not buffered\t");
+
+		allocate_frame(&ptr_fr);
+		map_frame(curenv->env_page_directory,ptr_fr,(void*)fault_va,PERM_PRESENT|PERM_USER|PERM_WRITEABLE);
+		int ret = pf_read_env_page(curenv,(void*) fault_va);
+
+		if (ret == E_PAGE_NOT_EXIST_IN_PF)
+		{
+			cprintf("stack\t");
+			if(fault_va>USER_HEAP_MAX&&fault_va<=USTACKTOP)
+			{
+
+				pf_add_empty_env_page(curenv, fault_va, 0);
+			}
+			else
+			{
+				panic("out of something");
+			}
+		}
+	}
+	cprintf("FInished Placement");
+}
