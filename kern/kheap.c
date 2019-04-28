@@ -195,7 +195,31 @@ void *krealloc(void *virtual_address, uint32 new_size)
 {
 	//TODO: [PROJECT 2019 - BONUS2] Kernel Heap Realloc
 	// Write your code here, remove the panic and write your code
+	if(new_size==0)
+	{
+		kfree(virtual_address);
+		return NULL;
+	}
+	int counter=0;
+	for(int i = 0 ; i < 1024 ; i++)
+	{
+		if(notfree[i].start == ROUNDDOWN(virtual_address,PAGE_SIZE))
+		{
+			counter = notfree[i].counter;
+			break;
+		}
+	}
+	int current_size=counter*PAGE_SIZE;
+	cprintf("\ncurrent_size=%d new_size=%d\n",current_size,new_size);
+	if(counter*PAGE_SIZE>=new_size)
+		return virtual_address;
 
+	void* newva =kmalloc(new_size);
+	if(newva!=NULL)
+	{
+		kfree(virtual_address);
+		return newva;
+	}
 	return NULL;
 	panic("krealloc() is not implemented yet...!!");
 
