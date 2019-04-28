@@ -200,26 +200,68 @@ void *krealloc(void *virtual_address, uint32 new_size)
 		kfree(virtual_address);
 		return NULL;
 	}
-	int counter=0;
-	for(int i = 0 ; i < 1024 ; i++)
+	int counter=0,index=0;
+	for(index = 0 ; index < 1024 ; index++)
 	{
-		if(notfree[i].start == ROUNDDOWN(virtual_address,PAGE_SIZE))
+		if(notfree[index].start == ROUNDDOWN(virtual_address,PAGE_SIZE))
 		{
-			counter = notfree[i].counter;
+			counter = notfree[index].counter;
 			break;
 		}
 	}
 	int current_size=counter*PAGE_SIZE;
-	cprintf("\ncurrent_size=%d new_size=%d\n",current_size,new_size);
-	if(counter*PAGE_SIZE>=new_size)
-		return virtual_address;
+	cprintf("\nva=%d current_size=%d new_size=%d \n",virtual_address,current_size,new_size);
 
-	void* newva =kmalloc(new_size);
-	if(newva!=NULL)
+	if(current_size==new_size)
+		return virtual_address;
+	if(current_size >new_size)
 	{
-		kfree(virtual_address);
-		return newva;
+		notfree[index].counter-=(current_size-new_size)/PAGE_SIZE;
+		for(int j=notfree[index].counter+1;j<counter;j++)
+		{
+			unmap_frame(ptr_page_directory , virtual_address+j*PAGE_SIZE);
+		}
+		return virtual_address;
 	}
+	if(current_size<new_size){
+		int extra=0;
+		for(int i = ((uint32)virtual_address)+current_size ;extra*PAGE_SIZE<new_size-current_size&&i < KERNEL_HEAP_MAX ;i+=PAGE_SIZE){
+			struct Frame_Info* fr = NULL;
+			//cprintf("extra %d at %d\n",extra,i);
+			uint32* page_table = NULL;
+			fr = get_frame_info(ptr_page_directory,(void*)i,&page_table);
+			if(fr==NULL)
+			{
+				extra += 1;
+			}
+			else
+			{
+				break;
+			}
+		}
+		if(extra<new_size-current_size)
+		{
+			void* newva =kmalloc(new_size);
+			if(newva!=NULL)
+			{
+				kfree(virtual_address);
+				return newva;
+			}
+		}
+		else
+		{
+			notfree[index].counter=new_size/PAGE_SIZE;
+			for(int j=counter;j<notfree[index].counter;j++)
+			{
+				cprintf("allocating\n");
+				struct Frame_Info *fr=NULL;
+				allocate_frame(&fr);
+				map_frame(ptr_page_directory ,fr, (void*)virtual_address+j*PAGE_SIZE,PERM_PRESENT|PERM_WRITEABLE);
+			}
+			return virtual_address;
+		}
+	}
+
 	return NULL;
 	panic("krealloc() is not implemented yet...!!");
 
