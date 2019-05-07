@@ -775,8 +775,12 @@ void allocateMem(struct Env* e, uint32 virtual_address, uint32 size)
 {
 	//TODO: [PROJECT 2019 - MS2 - [5] User Heap] allocateMem() [Kernel Side]
 	// Write your code here, remove the panic and write your code
-	panic("allocateMem() is not implemented yet...!!");
 
+	for(int i = 0 ; i < size ; i++)
+	{
+		//momken matla2ee4 makan fe el page file
+		pf_add_empty_env_page(e, virtual_address + i*PAGE_SIZE, 1);
+	}
 	//This function should allocate ALL pages of the required range in the PAGE FILE
 	//and allocate NOTHING in the main memory
 }
@@ -793,11 +797,15 @@ void __freeMem_with_buffering(struct Env* e, uint32 virtual_address, uint32 size
 {
 	//TODO: [PROJECT 2019 - MS2 - [5] User Heap] freeMem() [Kernel Side]
 	// Write your code here, remove the panic and write your code
-	panic("__freeMem_with_buffering() is not implemented yet...!!");
 
 	//This function should:
 	//1. Free ALL pages of the given range from the Page File
+	for(int i = 0 ; i < size ; i++)
+	{
+		pf_remove_env_page(e, virtual_address + i*PAGE_SIZE);
+	}
 	//2. Free ONLY pages that are resident in the working set from the memory
+
 	//3. Free any BUFFERED pages in the given range
 	//4. Removes ONLY the empty page tables (i.e. not used) (no pages are mapped in the table)
 
