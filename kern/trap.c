@@ -443,15 +443,11 @@ void page_fault_handler(struct Env * curenv, uint32 fault_va)
 
 void __page_fault_handler_with_buffering(struct Env * curenv, uint32 fault_va)
 {
-	cprintf("fault with %x\t",fault_va);
+	//cprintf("fault with %x\t",fault_va);
 	struct Frame_Info *ptr_fr ;
-	if(env_page_ws_get_size(curenv)<curenv->page_WS_max_size)
+	if(env_page_ws_get_size(curenv)>=curenv->page_WS_max_size)
 	{
-		Placement(curenv,fault_va);
-	}
-	else
-	{
-		cprintf("replacment\t");
+		//cprintf("replacment\t");
 		int mod=-1,index=-1;
 		/****************************Modified CLock Algorithm****************************/
 		if(isPageReplacmentAlgorithmModifiedCLOCK()){
@@ -472,27 +468,27 @@ void __page_fault_handler_with_buffering(struct Env * curenv, uint32 fault_va)
 			pt_set_page_permissions(curenv,victim,PERM_BUFFERED,PERM_PRESENT);
 			if(mod==1)
 			{
-				cprintf("free frame\t");
+				//cprintf("free frame\t");
 				LIST_INSERT_TAIL(&free_frame_list,ptr_fr);
 			}
 			else
 			{
-				cprintf("modified frame\t");
+				//cprintf("modified frame\t");
 				LIST_INSERT_TAIL(&modified_frame_list,ptr_fr);
 				if(getModifiedBufferLength()<=LIST_SIZE(&modified_frame_list))
 				{
-					cprintf("%d\t",getModifiedBufferLength());
+					//cprintf("%d\t",getModifiedBufferLength());
 					update_modified();
 				}
 			}
 
 		}
-		Placement(curenv,fault_va);
 	}
+		Placement(curenv,fault_va);
 
 	env_page_ws_set_entry(curenv,curenv->page_last_WS_index,fault_va);
 	curenv->page_last_WS_index=(curenv->page_last_WS_index+1)%curenv->page_WS_max_size;
-	cprintf("\n");
+	//cprintf("\n");
 
 }
 
@@ -552,7 +548,7 @@ void update_modified()
 }
 void Placement(struct Env* curenv,uint32 fault_va)
 {
-	cprintf("Placment\t");
+	//cprintf("Placment\t");
 
 	struct Frame_Info *ptr_fr ;
 	uint32 page_perm=pt_get_page_permissions(curenv,fault_va);
@@ -560,19 +556,19 @@ void Placement(struct Env* curenv,uint32 fault_va)
 	uint32* ptr_t;
 	if((page_perm&PERM_BUFFERED)!=0)
 	{
-		cprintf("Bufferd\t");
+		//cprintf("Bufferd\t");
 		pt_set_page_permissions(curenv,fault_va,PERM_PRESENT|PERM_USER|PERM_WRITEABLE,PERM_BUFFERED);
 		ptr_fr=get_frame_info(curenv->env_page_directory,(void*)fault_va,&ptr_t);
 		if(page_perm&PERM_MODIFIED)
 		{
-			cprintf("modified\t");
+			//cprintf("modified\t");
 			ptr_fr->isBuffered=0;
 			LIST_REMOVE(&modified_frame_list,ptr_fr);
 
 		}
 		else
 		{
-			cprintf("free\t");
+			//cprintf("free\t");
 
 			ptr_fr->isBuffered=0;
 			LIST_REMOVE(&free_frame_list,ptr_fr);
@@ -581,7 +577,7 @@ void Placement(struct Env* curenv,uint32 fault_va)
 	}
 	else
 	{
-		cprintf("not buffered\t");
+		//cprintf("not buffered\t");
 
 		allocate_frame(&ptr_fr);
 		map_frame(curenv->env_page_directory,ptr_fr,(void*)fault_va,PERM_PRESENT|PERM_USER|PERM_WRITEABLE);
@@ -589,7 +585,7 @@ void Placement(struct Env* curenv,uint32 fault_va)
 
 		if (ret == E_PAGE_NOT_EXIST_IN_PF)
 		{
-			cprintf("stack\t");
+			//cprintf("stack\t");
 			if(fault_va>USER_HEAP_MAX&&fault_va<=USTACKTOP)
 			{
 
@@ -597,11 +593,11 @@ void Placement(struct Env* curenv,uint32 fault_va)
 			}
 			else
 			{
-				panic("out of something");
+				panic("Not Stack and not in PAGE FILE ");
 			}
 		}
 	}
-	cprintf("FInished Placement");
+	//cprintf("FInished Placement");
 }
 
 

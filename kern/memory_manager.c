@@ -798,16 +798,79 @@ void __freeMem_with_buffering(struct Env* e, uint32 virtual_address, uint32 size
 	//TODO: [PROJECT 2019 - MS2 - [5] User Heap] freeMem() [Kernel Side]
 	// Write your code here, remove the panic and write your code
 
-	//This function should:
 	//1. Free ALL pages of the given range from the Page File
-	for(int i = 0 ; i < size ; i++)
-	{
-		pf_remove_env_page(e, virtual_address + i*PAGE_SIZE);
-	}
+		for(int i = 0 ; i < size ; i++)
+		{
+			pf_remove_env_page(e, virtual_address + i*PAGE_SIZE);
+		}
+	//This function should:
 	//2. Free ONLY pages that are resident in the working set from the memory
+		for(int i=0; i < size ;i++)
+		{
+			int j=0;
+			uint32 va = virtual_address + i *PAGE_SIZE;
+
+			for(;j<e->page_WS_max_size; j++)
+			{
+				if(ROUNDDOWN(e->ptr_pageWorkingSet[j].virtual_address,PAGE_SIZE) == ROUNDDOWN(va,PAGE_SIZE))
+				{
+					unmap_frame(e->env_page_directory,(void*)va);
+
+					pt_clear_page_table_entry( e , va);
+					env_page_ws_clear_entry(e, j);
+					break;
+				}
+			}
+
+			//env_page_ws_invalidate(e,virtual_address+j*PAGE_SIZE);
+
+		}
 
 	//3. Free any BUFFERED pages in the given range
+	for(int i=0; i < size ;i++)
+	{
+		uint32 va = virtual_address + i *PAGE_SIZE;
+		uint32 perm=pt_get_page_permissions(e,va );
+		struct Frame_Info *fr;
+		uint32* ptr;
+		fr=get_frame_info(e->env_page_directory,(void*)va,&ptr);
+		if(fr==NULL)
+			continue;
+		if(perm&PERM_BUFFERED)
+		{
+			LIST_REMOVE(&modified_frame_list,fr);
+		}
+		else
+		{
+			LIST_REMOVE(&free_frame_list,fr);
+		}
+
+		fr->environment=NULL;
+		pt_set_page_permissions(e,va,0,PERM_BUFFERED);
+		free_frame(fr);
+
+		//		env_page_ws_invalidate(e,va);
+		pt_clear_page_table_entry( e , va);
+	}
+
+
 	//4. Removes ONLY the empty page tables (i.e. not used) (no pages are mapped in the table)
+	for(int i=0;i<size;i++)
+	{
+		uint32 va = virtual_address + i *PAGE_SIZE;
+
+		uint32 * p1,*p2;
+
+		if(pd_is_table_used(e,  va)==0)
+		{
+			cprintf("Ahmed \n");
+			uint32 * p1,*p2;
+			get_page_table(e->env_page_directory,(void*)va,&p1);
+			unmap_frame(e->env_page_directory,(void*)p1);
+
+			pd_clear_page_dir_entry(e, va);
+		}
+	}
 
 	//Refer to the project presentation and documentation for details
 }
