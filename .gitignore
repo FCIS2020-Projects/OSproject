@@ -1,0 +1,6 @@
+*
+!.gitignore
+!kern/
+!kern/*
+!lib/
+!lib/uheap.c

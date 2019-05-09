@@ -58,6 +58,7 @@ int allocate_share_object(struct Share **allocatedObject)
 
 	if (sharedObjectID == -1)
 	{
+		//return E_NO_SHARE;
 		//try to increase double the size of the "shares" array
 		if (USE_KHEAP == 1)
 		{
@@ -172,7 +173,7 @@ int createSharedObject(int32 ownerID, char* shareName, uint32 size, uint8 isWrit
 {
 	//TODO: [PROJECT 2019 - MS2 - [6] Shared Variables: Creation] createSharedObject() [Kernel Side]
 	// your code is here, remove the panic and write your code
-	panic("createSharedObject() is not implemented yet...!!");
+	//panic("createSharedObject() is not implemented yet...!!");
 
 	struct Env* myenv = curenv; //The calling environment
 
@@ -180,11 +181,11 @@ int createSharedObject(int32 ownerID, char* shareName, uint32 size, uint8 isWrit
 	// and return the ShareObjectID
 	// RETURN:
 	//	a) ShareObjectID (its index in "shares" array) if success
-	//	b) E_SHARED_MEM_EXISTS if the shared object already exists
-	//	c) E_NO_SHARE if the number of shared objects reaches max "MAX_SHARES"
+	//	b) E_SHARED_MEM_EXISTS if the shared object already exists **
+	//	c) E_NO_SHARE if the number of shared objects reaches max "MAX_SHARES" **
 
 	// Steps:
-	//	1) Allocate a new share object (use allocate_share_object())
+	//	1) Allocate a new share object (use allocate_share_object()) **
 	//	2) Allocate the required space in the physical memory on a PAGE boundary
 	//	3) Map the allocated space on the given "virtual_address" on the current environment "myenv": object OWNER,
 	//	   with writable permissions
@@ -198,7 +199,43 @@ int createSharedObject(int32 ownerID, char* shareName, uint32 size, uint8 isWrit
 	//		Else, return suitable error
 
 	//change this "return" according to your answer
-	return 0;
+
+	struct Share *allocatedObject = NULL;
+	int objID = 0;
+
+	objID = get_share_object_ID(ownerID,shareName);
+	if (objID == E_SHARED_MEM_NOT_EXISTS)
+	{
+		objID = allocate_share_object(&allocatedObject);
+		if(objID != E_NO_SHARE)
+		{
+			int framesNO = ROUNDUP(size,PAGE_SIZE)/PAGE_SIZE;
+
+			for (int i = 0; i < framesNO; i++)
+			{
+				struct Frame_Info* frameInfo = NULL;
+				int ret = allocate_frame(&frameInfo);
+				if (ret != E_NO_MEM)
+				{
+					map_frame(myenv->env_page_directory, frameInfo,virtual_address + (i * PAGE_SIZE),
+							PERM_PRESENT | PERM_USER | PERM_WRITEABLE);
+
+					allocatedObject->ownerID = ownerID;
+					strcpy(allocatedObject->name,shareName);
+					allocatedObject->size = size;
+					allocatedObject->isWritable = isWritable;
+					allocatedObject->references = 1 ;
+
+					add_frame_to_storage(allocatedObject->framesStorage, frameInfo, i);
+				}
+			}
+			return objID;
+		}
+		else
+			return E_NO_SHARE ;
+	}
+	else
+		return E_SHARED_MEM_EXISTS;
 }
 
 //======================
@@ -208,7 +245,7 @@ int getSharedObject(int32 ownerID, char* shareName, void* virtual_address)
 {
 	//TODO: [PROJECT 2019 - MS2 - [6] Shared Variables: Get] getSharedObject() [Kernel Side]
 	// your code is here, remove the panic and write your code
-	panic("getSharedObject() is not implemented yet...!!");
+	//panic("getSharedObject() is not implemented yet...!!");
 
 	struct Env* myenv = curenv; //The calling environment
 
@@ -229,9 +266,36 @@ int getSharedObject(int32 ownerID, char* shareName, void* virtual_address)
 	// 	6) 	If succeed: return the ID of the shared object (i.e. its index in the "shares" array)
 	//		Else, return suitable error
 
+	int objID = 0;
+	objID = get_share_object_ID(ownerID,shareName);
+
+	if(objID != E_SHARED_MEM_NOT_EXISTS )
+	{
+		int frameNO = ROUNDUP(shares[objID].size,PAGE_SIZE)/PAGE_SIZE ;
+
+		for(int i = 0 ; i < frameNO ; i++)
+		{
+			struct Frame_Info* ptr_frame_info = NULL;
+
+			ptr_frame_info = get_frame_from_storage(shares[objID].framesStorage , i);
+
+			int PERM = PERM_PRESENT | PERM_USER;
+			if (shares[objID].isWritable == 1)
+			{
+				PERM = PERM | PERM_WRITEABLE;
+			}
+			map_frame(myenv->env_page_directory, ptr_frame_info,virtual_address + (i * PAGE_SIZE),PERM);
+
+			shares[objID].references +=1;
+		}
+		return objID;
+	}
+	else
+		return E_SHARED_MEM_NOT_EXISTS;
+
 	//change this "return" according to your answer
-	return 0;
 }
+
 
 //==================================================================================//
 //============================== BONUS FUNCTIONS ===================================//
