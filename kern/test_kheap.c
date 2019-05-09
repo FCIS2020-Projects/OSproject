@@ -47,13 +47,13 @@ int test_kmalloc()
 	struct MyStruct *structArr ;
 	int lastIndexOfByte, lastIndexOfByte2, lastIndexOfShort, lastIndexOfShort2, lastIndexOfInt, lastIndexOfStruct;
 	int start_freeFrames = sys_calculate_free_frames() ;
+
 	void* ptr_allocations[20] = {0};
 	{
 		//Insufficient space
 		int freeFrames = sys_calculate_free_frames() ;
 		int freeDiskFrames = pf_calculate_free_frames() ;
 		uint32 sizeOfKHeap = (KERNEL_HEAP_MAX - ACTUAL_START + 1) ;
-
 		ptr_allocations[0] = kmalloc(sizeOfKHeap);
 		if (ptr_allocations[0] != NULL) panic("Allocating insufficient space: should return NULL");
 		if ((pf_calculate_free_frames() - freeDiskFrames) != 0) panic("Page file is changed while it's not expected to. (pages are wrongly allocated/de-allocated in PageFile)");
@@ -2033,7 +2033,7 @@ int test_kheap_phys_addr()
 			{
 				if ((ptr_table[j] & 0xFFFFF000) != allPAs[i])
 				{
-					cprintf("\nVA = %x, table entry = %x, khep_pa = %x\n",va + j*PAGE_SIZE, (ptr_table[j] & 0xFFFFF000) , allPAs[i]);
+					//cprintf("\nVA = %x, table entry = %x, khep_pa = %x\n",va + j*PAGE_SIZE, (ptr_table[j] & 0xFFFFF000) , allPAs[i]);
 					panic("Wrong kheap_physical_address");
 				}
 			}
@@ -2849,7 +2849,7 @@ int test_krealloc() {
 		newAddress = krealloc(ptr_allocations[4], (10 * Mega - kilo));
 		if ((uint32) newAddress < (KERNEL_HEAP_START))
 			panic("krealloc: Wrong start address for the allocated space... ");
-		if ((uint32) newAddress != ACTUAL_START + (14 * Mega))
+		if ((uint32) newAddress != ACTUAL_START + (11 * Mega))
 			panic(
 					"krealloc: Wrong start address for reallocated space, NSA = %x\nbbb",
 					(uint32 )newAddress);
@@ -2863,19 +2863,22 @@ int test_krealloc() {
 		ptr_allocations[4] = newAddress;
 		//lastIndices[4] = (10 * Mega - kilo) / sizeof(short) - 1;
 
-		//Reallocate 1st 3 MB to 6 MB
+		//Reallocate 1st 3 MB to 4 MB
 		freeFrames = sys_calculate_free_frames();
-		newAddress = krealloc(ptr_allocations[6], (6 * Mega - kilo));
+		newAddress = krealloc(ptr_allocations[6], (4 * Mega - kilo));
 		if ((uint32) newAddress < (KERNEL_HEAP_START))
 			panic("krealloc: Wrong start address for the allocated space... ");
-		if (newAddress != ptr_allocations[6])
+		if (newAddress == ptr_allocations[6])
 			panic(
-					"Wrong allocation: krealloc reallocated a new address while there is a sufficient space after it (it should return same VA)");
-		//3 MB only for the new size
-		if (freeFrames - sys_calculate_free_frames() != 768)
-			panic("krealloc: pages in memory are not loaded correctly");
+					"Wrong allocation: krealloc reallocated at the same address while there is NO sufficient space after it (it should return new VA)");
+		if ((uint32)newAddress != ACTUAL_START + 4 * Mega)
+					panic("krealloc: Wrong start address for allocated space");
 
-		//Reallocate 1st 3 MB (already reallocated to 6 MB) to 20 MB. It should return new VA
+		//1 MB only for the new size
+		if (freeFrames - sys_calculate_free_frames() != 256)
+			panic("krealloc: pages in memory are not loaded correctly");
+		ptr_allocations[6] = newAddress;
+		//Reallocate 1st 3 MB (already reallocated to 4 MB) to 20 MB. It should return new VA
 
 		freeFrames = sys_calculate_free_frames();
 		newAddress = krealloc(ptr_allocations[6], (20 * Mega - kilo));
@@ -2884,10 +2887,10 @@ int test_krealloc() {
 		if (newAddress == ptr_allocations[6])
 			panic(
 					"Wrong allocation: krealloc reallocated at the same address while there is NO sufficient space after it (it should return new VA)");
-		if ((uint32) newAddress != ACTUAL_START + (24 * Mega))
+		if ((uint32) newAddress != ACTUAL_START + (21 * Mega))
 			panic("krealloc: Wrong start address for reallocated space");
 		//3 MB only for the new size
-		if (freeFrames - sys_calculate_free_frames() != 3584)
+		if (freeFrames - sys_calculate_free_frames() != (16 * Mega) / PAGE_SIZE)
 			panic("krealloc: pages in memory are not loaded correctly");
 
 		ptr_allocations[6] = newAddress;
