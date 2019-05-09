@@ -796,14 +796,41 @@ void freeMem(struct Env* e, uint32 virtual_address, uint32 size)
 void __freeMem_with_buffering(struct Env* e, uint32 virtual_address, uint32 size)
 {
 	//TODO: [PROJECT 2019 - MS2 - [5] User Heap] freeMem() [Kernel Side]
+	//3. Free any BUFFERED pages in the given range
+	for(int i=0; i < size ;i++)
+	{
+		uint32 va = virtual_address + i *
+				PAGE_SIZE;
+		struct Frame_Info *fr;
+		uint32* ptr;
+		uint32 perm=pt_get_page_permissions(e,va );
+		fr=get_frame_info(e->env_page_directory,(void*)va,&ptr);
+		//cprintf("\n");
+
+		if(fr==NULL&&!(perm&PERM_BUFFERED))
+		{
+			continue;
+		}
+
+		if(perm&PERM_MODIFIED)
+		{
+		//	cprintf("Modified\t");
+			LIST_REMOVE(&modified_frame_list,fr);
+		}
+		else
+		{
+			//cprintf("Free\t");
+			LIST_REMOVE(&free_frame_list,fr);
+		}
+		fr->isBuffered=0;
+		fr->environment=NULL;
+		pt_set_page_permissions(e,va,0,PERM_BUFFERED&PERM_MODIFIED);
+		free_frame(fr);
+
+		pt_clear_page_table_entry( e , va);
+	}
 	// Write your code here, remove the panic and write your code
 
-	//1. Free ALL pages of the given range from the Page File
-		for(int i = 0 ; i < size ; i++)
-		{
-			pf_remove_env_page(e, virtual_address + i*PAGE_SIZE);
-		}
-	//This function should:
 	//2. Free ONLY pages that are resident in the working set from the memory
 		for(int i=0; i < size ;i++)
 		{
@@ -826,51 +853,37 @@ void __freeMem_with_buffering(struct Env* e, uint32 virtual_address, uint32 size
 
 		}
 
-	//3. Free any BUFFERED pages in the given range
-	for(int i=0; i < size ;i++)
-	{
-		uint32 va = virtual_address + i *PAGE_SIZE;
-		uint32 perm=pt_get_page_permissions(e,va );
-		struct Frame_Info *fr;
-		uint32* ptr;
-		fr=get_frame_info(e->env_page_directory,(void*)va,&ptr);
-		if(fr==NULL)
-			continue;
-		if(perm&PERM_BUFFERED)
-		{
-			LIST_REMOVE(&modified_frame_list,fr);
-		}
-		else
-		{
-			LIST_REMOVE(&free_frame_list,fr);
-		}
-
-		fr->environment=NULL;
-		pt_set_page_permissions(e,va,0,PERM_BUFFERED);
-		free_frame(fr);
-
-		//		env_page_ws_invalidate(e,va);
-		pt_clear_page_table_entry( e , va);
-	}
-
 
 	//4. Removes ONLY the empty page tables (i.e. not used) (no pages are mapped in the table)
 	for(int i=0;i<size;i++)
 	{
 		uint32 va = virtual_address + i *PAGE_SIZE;
 
-		uint32 * p1,*p2;
-
-		if(pd_is_table_used(e,  va)==0)
+		uint32 * p1;
+		int k=0;
+		get_page_table(e->env_page_directory,(void*)va,&p1);
+		for(k;p1!=NULL&&k<1024;k++)
 		{
-			cprintf("Ahmed \n");
-			uint32 * p1,*p2;
-			get_page_table(e->env_page_directory,(void*)va,&p1);
-			unmap_frame(e->env_page_directory,(void*)p1);
-
-			pd_clear_page_dir_entry(e, va);
+			if(p1[k]!=0)
+			{
+				break;
+			}
 		}
+		if(k==1024)
+		{
+			pd_clear_page_dir_entry(e, va);
+			kfree(p1);
+
+		}
+
 	}
+
+	//1. Free ALL pages of the given range from the Page File
+		for(int i = 0 ; i < size ; i++)
+		{
+			pf_remove_env_page(e, virtual_address + i*PAGE_SIZE);
+		}
+	//This function should:
 
 	//Refer to the project presentation and documentation for details
 }
