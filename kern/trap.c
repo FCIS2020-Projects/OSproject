@@ -263,9 +263,9 @@ static void trap_dispatch(struct Trapframe *tf)
 void trap(struct Trapframe *tf)
 {
 	kclock_stop();
-
 	int userTrap = 0;
-	if ((tf->tf_cs & 3) == 3) {
+	if ((tf->tf_cs & 3) == 3)
+	{
 		assert(curenv);
 		curenv->env_tf = *tf;
 		tf = &(curenv->env_tf);
@@ -273,23 +273,24 @@ void trap(struct Trapframe *tf)
 	}
 	if(tf->tf_trapno == IRQ0_Clock)
 	{
-		//uint16 cnt0 = kclock_read_cnt0_latch() ;
-		//cprintf("CLOCK INTERRUPT: Counter0 Value = %d\n", cnt0 );
-
 		if (userTrap)
 		{
 			assert(curenv);
 			curenv->nClocks++ ;
 		}
 	}
-	else if (tf->tf_trapno == T_PGFLT){
+	else if (tf->tf_trapno == T_PGFLT)
+	{
 		//2016: Bypass the faulted instruction
-		if (bypassInstrLength != 0){
-			if (userTrap){
+		if (bypassInstrLength != 0)
+		{
+			if (userTrap)
+			{
 				curenv->env_tf.tf_eip = (uint32*)((uint32)(curenv->env_tf.tf_eip) + bypassInstrLength);
 				env_run(curenv);
 			}
-			else{
+			else
+			{
 				tf->tf_eip = (uint32*)((uint32)(tf->tf_eip) + bypassInstrLength);
 				kclock_resume();
 				env_pop_tf(tf);
@@ -297,8 +298,16 @@ void trap(struct Trapframe *tf)
 		}
 	}
 	trap_dispatch(tf);
-	assert(curenv && curenv->env_status == ENV_RUNNABLE);
-	env_run(curenv);
+	if (userTrap)
+	{
+		assert(curenv && curenv->env_status == ENV_RUNNABLE);
+		env_run(curenv);
+	}
+	/* 2019   * If trap from kernel, then return to the called kernel function using the passed param "tf" not the user one that's stored in curenv   */
+	else
+	{
+		env_pop_tf((tf));
+	}
 }
 
 void setPageReplacmentAlgorithmLRU(){_PageRepAlgoType = PG_REP_LRU;}

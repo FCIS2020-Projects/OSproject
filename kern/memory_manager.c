@@ -831,7 +831,6 @@ void __freeMem_with_buffering(struct Env* e, uint32 virtual_address, uint32 size
 	}
 	// Write your code here, remove the panic and write your code
 
-<<<<<<< HEAD
 	//2. Free ONLY pages that are resident in the working set from the memory
 		for(int i=0; i < size ;i++)
 		{
@@ -854,18 +853,6 @@ void __freeMem_with_buffering(struct Env* e, uint32 virtual_address, uint32 size
 
 		}
 
-
-=======
-	//This function should:
-	//1. Free ALL pages of the given range from the Page File
-	for(int i = 0 ; i < size ; i++)
-	{
-		pf_remove_env_page(e, virtual_address + i*PAGE_SIZE);
-	}
-	//2. Free ONLY pages that are resident in the working set from the memory
-
-	//3. Free any BUFFERED pages in the given range
->>>>>>> d680604ce862c997b5dc6a4a5a449461b2d28229
 	//4. Removes ONLY the empty page tables (i.e. not used) (no pages are mapped in the table)
 	for(int i=0;i<size;i++)
 	{
