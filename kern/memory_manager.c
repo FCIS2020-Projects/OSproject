@@ -797,17 +797,22 @@ void __freeMem_with_buffering(struct Env* e, uint32 virtual_address, uint32 size
 {
 	//TODO: [PROJECT 2019 - MS2 - [5] User Heap] freeMem() [Kernel Side]
 	//3. Free any BUFFERED pages in the given range
+
 	for(int i=0; i < size ;i++)
 	{
 		uint32 va = virtual_address + i *PAGE_SIZE;
-		pf_remove_env_page(e,va);
-		struct Frame_Info *fr;
 		uint32* ptr;
 		uint32 perm=pt_get_page_permissions(e,va );
-		fr=get_frame_info(e->env_page_directory,(void*)va,&ptr);
+		pf_remove_env_page(e,va);
+		if((perm&~PERM_BUFFERED))
+		{
+			continue;
+		}
+
+		struct Frame_Info *fr=get_frame_info(e->env_page_directory,(void*)va,&ptr);
 
 
-		if(fr==NULL&&!(perm&PERM_BUFFERED))
+		if(fr==NULL||!(perm&~PERM_BUFFERED))
 		{
 			continue;
 		}
