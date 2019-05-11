@@ -24,6 +24,8 @@ struct Segment
 };
 struct Segment free_segments[1024];
 struct Segment notfree[1024];
+int freeSize = 0;
+int notfreeSize = 0;
 
 void get_free_spaces()
 {
@@ -31,24 +33,29 @@ void get_free_spaces()
 		free_segments[i].counter = 0;
 		free_segments[i].start = NULL;
 	}
-	int arrindex = 0;
-	int notfreeindex = 0;
 	for(int i = USER_HEAP_START ;i < USER_HEAP_MAX ;i+=PAGE_SIZE){
-		struct Frame_Info* fr = NULL;
-		uint32* page_table = NULL;
-		if(i >= (int)notfree[notfreeindex].start + notfree[notfreeindex].counter*PAGE_SIZE)
-			notfreeindex++;
-		if(i < (int)notfree[notfreeindex].start)
+		int isFree = 1;
+		for(int j = 0 ; j < notfreeSize ; j++)
 		{
-			if(free_segments[arrindex].counter == 0)
-				free_segments[arrindex].start =(uint32*) i;
-			free_segments[arrindex].counter += 1;
+			if(i >= (int)notfree[j].start && i < (int)notfree[j].start + notfree[j].counter*PAGE_SIZE)
+			{
+				isFree = 0;
+				break;
+			}
+		}
+		if(isFree)
+		{
+			if(free_segments[freeSize].counter == 0)
+				free_segments[freeSize].start =(uint32*) i;
+			free_segments[freeSize].counter += 1;
 		}
 		else
 		{
 
-			if(free_segments[arrindex].counter > 0)
-				arrindex++;
+			if(free_segments[freeSize].counter > 0)
+			{
+				freeSize++;
+			}
 		}
 
 	}
@@ -62,7 +69,7 @@ uint32* BESTFIT_Strategy( int s)
 		bestfit.start = NULL;
 		int min = (USER_HEAP_MAX-USER_HEAP_START)/PAGE_SIZE;
 
-		for(int i=0 ;i<1024 ;i++){
+		for(int i=0 ;i<freeSize+1 ;i++){
 			if(free_segments[i].counter == s)
 			{
 				bestfit = free_segments[i];
@@ -77,7 +84,8 @@ uint32* BESTFIT_Strategy( int s)
 
 		if(bestfit.start != NULL)
 		{
-			for(int i=0 ;i<1024 ;i++){
+			notfreeSize++;
+			for(int i=0 ;i<notfreeSize ;i++){
 				if(notfree[i].counter == 0)
 				{
 					notfree[i].start = bestfit.start;
@@ -237,12 +245,13 @@ void free(void* virtual_address)
 
 	//you should get the size of the given allocation using its address
 	int counter;
-	for(int i = 0 ; i < 1024 ; i++)
+	for(int i = 0 ; i < notfreeSize ; i++)
 	{
 		if(notfree[i].start == virtual_address)
 		{
 			counter = notfree[i].counter;
 			notfree[i].counter = 0;
+			notfree[i].start = NULL;
 			break;
 		}
 	}
