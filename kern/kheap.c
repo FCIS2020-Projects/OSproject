@@ -196,6 +196,7 @@ void *krealloc(void *virtual_address, uint32 new_size)
 	//panic("krealloc() is not implemented yet...!!");
 	//TODO: [PROJECT 2019 - BONUS2] Kernel Heap Realloc
 	// Write your code here, remove the panic and write your code
+	return NULL;
 	if(new_size==0)
 	{
 		kfree(virtual_address);
@@ -262,6 +263,5 @@ void *krealloc(void *virtual_address, uint32 new_size)
 		}
 	}
 
-	return NULL;
 
 }
