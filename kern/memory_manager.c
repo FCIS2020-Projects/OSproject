@@ -803,7 +803,7 @@ void __freeMem_with_buffering(struct Env* e, uint32 virtual_address, uint32 size
 		uint32* ptr;
 		uint32 perm=pt_get_page_permissions(e,va );
 		pf_remove_env_page(e,va);
-		if(~(perm&PERM_BUFFERED))
+		if((perm&PERM_BUFFERED)==0)
 		{
 			continue;
 		}
@@ -811,7 +811,7 @@ void __freeMem_with_buffering(struct Env* e, uint32 virtual_address, uint32 size
 		struct Frame_Info *fr=get_frame_info(e->env_page_directory,(void*)va,&ptr);
 
 
-		if(fr==NULL||(perm&~PERM_BUFFERED))
+		if(fr==NULL)
 		{
 			continue;
 		}

@@ -292,7 +292,7 @@ void sys_freeMem(uint32 virtual_address, uint32 size)
 	}
 	else
 	{
-		cprintf("well that is wrong\n");
+		cprintf("well this is wrong\n");
 		freeMem(curenv, virtual_address, size);
 	}
 	return;
