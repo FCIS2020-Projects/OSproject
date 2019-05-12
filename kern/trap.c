@@ -493,7 +493,8 @@ void __page_fault_handler_with_buffering(struct Env * curenv, uint32 fault_va)
 
 		}
 	}
-		Placement(curenv,fault_va);
+
+	Placement(curenv,fault_va);
 
 	env_page_ws_set_entry(curenv,curenv->page_last_WS_index,fault_va);
 	curenv->page_last_WS_index=(curenv->page_last_WS_index+1)%curenv->page_WS_max_size;

@@ -812,7 +812,7 @@ void __freeMem_with_buffering(struct Env* e, uint32 virtual_address, uint32 size
 		struct Frame_Info *fr=get_frame_info(e->env_page_directory,(void*)va,&ptr);
 
 
-		if(fr==NULL||!(perm&~PERM_BUFFERED))
+		if(fr==NULL||(perm&~PERM_BUFFERED))
 		{
 			continue;
 		}
