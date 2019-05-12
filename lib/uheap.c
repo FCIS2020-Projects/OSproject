@@ -26,7 +26,7 @@ struct Segment free_segments[1024];
 struct Segment notfree[1024];
 int freeSize = 0;
 int notfreeSize = 0;
-
+bool Pagesflag[(USER_HEAP_MAX - USER_HEAP_START)/PAGE_SIZE] = {};
 void get_free_spaces()
 {
 	for(int i = 0;i<1024;i++){
@@ -34,16 +34,7 @@ void get_free_spaces()
 		free_segments[i].start = NULL;
 	}
 	for(int i = USER_HEAP_START ;i < USER_HEAP_MAX ;i+=PAGE_SIZE){
-		int isFree = 1;
-		for(int j = 0 ; j < notfreeSize ; j++)
-		{
-			if(i >= (int)notfree[j].start && i < (int)notfree[j].start + notfree[j].counter*PAGE_SIZE)
-			{
-				isFree = 0;
-				break;
-			}
-		}
-		if(isFree)
+		if(Pagesflag[(i-USER_HEAP_START)/PAGE_SIZE] == 0)
 		{
 			if(free_segments[freeSize].counter == 0)
 				free_segments[freeSize].start =(uint32*) i;
@@ -84,14 +75,14 @@ uint32* BESTFIT_Strategy( int s)
 
 		if(bestfit.start != NULL)
 		{
+			notfree[notfreeSize].start = bestfit.start;
+			notfree[notfreeSize].counter = s;
 			notfreeSize++;
-			for(int i=0 ;i<notfreeSize ;i++){
-				if(notfree[i].counter == 0)
-				{
-					notfree[i].start = bestfit.start;
-					notfree[i].counter = s;
-					break;
-				}
+
+
+			for(int i = 0; i < s ; i++)
+			{
+				Pagesflag[((int)bestfit.start - USER_HEAP_START)/PAGE_SIZE + i]=1;
 			}
 		}
 		return bestfit.start;
@@ -109,7 +100,6 @@ void* malloc(uint32 size)
 	unsigned int s=size/PAGE_SIZE;
 
 	uint32* virtual_address = BESTFIT_Strategy(s);
-
 	//	2) if no suitable space found, return NULL
 	if(virtual_address == NULL)
 		return NULL;
@@ -250,10 +240,15 @@ void free(void* virtual_address)
 		if(notfree[i].start == virtual_address)
 		{
 			counter = notfree[i].counter;
-			notfree[i].counter = 0;
-			notfree[i].start = NULL;
+			notfreeSize--;
+			for(int j = i ; j < notfreeSize ; j++)
+				notfree[i] = notfree[i+1];
 			break;
 		}
+	}
+	for(int i = 0 ; i < counter ; i++)
+	{
+		Pagesflag[((int)virtual_address-USER_HEAP_START)/PAGE_SIZE + i] = 0;
 	}
 	//you need to call sys_freeMem()
 	sys_freeMem((uint32)virtual_address, counter);
