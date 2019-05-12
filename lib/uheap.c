@@ -27,8 +27,17 @@ struct Segment notfree[1024];
 int freeSize = 0;
 int notfreeSize = 0;
 bool Pagesflag[(USER_HEAP_MAX - USER_HEAP_START)/PAGE_SIZE] = {};
+bool firstMalloc = 1;
 void get_free_spaces()
 {
+	if(firstMalloc)
+	{
+		for(int i = 0;i<1024;i++){
+			notfree[i].counter = 0;
+			notfree[i].start = NULL;
+		}
+		firstMalloc = 0;
+	}
 	for(int i = 0;i<1024;i++){
 		free_segments[i].counter = 0;
 		free_segments[i].start = NULL;
@@ -242,7 +251,7 @@ void free(void* virtual_address)
 			counter = notfree[i].counter;
 			notfreeSize--;
 			for(int j = i ; j < notfreeSize ; j++)
-				notfree[i] = notfree[i+1];
+				notfree[j] = notfree[j+1];
 			break;
 		}
 	}
