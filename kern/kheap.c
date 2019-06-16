@@ -193,67 +193,68 @@ unsigned int kheap_physical_address(unsigned int virtual_address)
 
 void *krealloc(void *virtual_address, uint32 new_size)
 {
+	//panic("krealloc() is not implemented yet...!!");
 	//TODO: [PROJECT 2019 - BONUS2] Kernel Heap Realloc
 	// Write your code here, remove the panic and write your code
+	return NULL;
 	if(new_size==0)
 	{
 		kfree(virtual_address);
 		return NULL;
 	}
-	int counter=0,index=0;
+	if(virtual_address == NULL)
+	{
+		return kmalloc(new_size);
+	}
+	int current_pages=0,index=0;
 	for(index = 0 ; index < 1024 ; index++)
 	{
 		if(notfree[index].start == ROUNDDOWN(virtual_address,PAGE_SIZE))
 		{
-			counter = notfree[index].counter;
+			current_pages = notfree[index].counter;
 			break;
 		}
 	}
-	int current_size=counter*PAGE_SIZE;
-	cprintf("\nva=%d current_size=%d new_size=%d \n",virtual_address,current_size,new_size);
+	int current_size=current_pages*PAGE_SIZE;
+	new_size = ROUNDUP(new_size, PAGE_SIZE);
+	int new_pages = new_size/PAGE_SIZE;
 
-	if(current_size==new_size)
+	cprintf("\nva=%x current_size=%x new_size=%x \n",virtual_address,current_size,new_size);
+
+	if(current_size>=new_size)
 		return virtual_address;
-	if(current_size >new_size)
+	else
 	{
-		notfree[index].counter-=(current_size-new_size)/PAGE_SIZE;
-		for(int j=notfree[index].counter+1;j<counter;j++)
-		{
-			unmap_frame(ptr_page_directory , virtual_address+j*PAGE_SIZE);
-		}
-		return virtual_address;
-	}
-	if(current_size<new_size){
 		int extra=0;
-		for(int i = ((uint32)virtual_address)+current_size ;extra*PAGE_SIZE<new_size-current_size&&i < KERNEL_HEAP_MAX ;i+=PAGE_SIZE){
+		for(int i = ((uint32)virtual_address)+current_size ;extra < new_pages - current_pages && i < KERNEL_HEAP_MAX ;i+=PAGE_SIZE){
 			struct Frame_Info* fr = NULL;
-			//cprintf("extra %d at %d\n",extra,i);
 			uint32* page_table = NULL;
 			fr = get_frame_info(ptr_page_directory,(void*)i,&page_table);
 			if(fr==NULL)
 			{
 				extra += 1;
+				//cprintf("extra %d at %x\n",extra,i);
 			}
 			else
 			{
 				break;
 			}
 		}
-		if(extra<new_size-current_size)
+		if(extra<new_pages-current_pages)
 		{
 			void* newva =kmalloc(new_size);
 			if(newva!=NULL)
 			{
 				kfree(virtual_address);
-				return newva;
 			}
+			return newva;
 		}
 		else
 		{
-			notfree[index].counter=new_size/PAGE_SIZE;
-			for(int j=counter;j<notfree[index].counter;j++)
+			notfree[index].counter = new_pages;
+			for(int j=current_pages;j<new_pages;j++)
 			{
-				cprintf("allocating\n");
+				//cprintf("allocating\n");
 				struct Frame_Info *fr=NULL;
 				allocate_frame(&fr);
 				map_frame(ptr_page_directory ,fr, (void*)virtual_address+j*PAGE_SIZE,PERM_PRESENT|PERM_WRITEABLE);
@@ -262,7 +263,5 @@ void *krealloc(void *virtual_address, uint32 new_size)
 		}
 	}
 
-	return NULL;
-	panic("krealloc() is not implemented yet...!!");
 
 }

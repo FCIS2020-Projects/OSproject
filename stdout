@@ -1,0 +1,59 @@
+
+
+
+	     	     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+	     	     !!                                                             !!
+	     	     !!                   !! FCIS says HELLO !!                     !!
+	     	     !!                                                             !!
+	     	     !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+
+
+Physical memory: 32768K available, base = 640K, extended = 31744K
+Max Envs = 1260
+check_boot_pgdir() succeeded!
+ki = 0
+s = 1
+arr[i].start = f6000000
+ki = 0
+s = 1
+arr[i].start = f6001000
+ki = 0
+s = 2
+arr[i].start = f6002000
+ki = 0
+s = 2
+arr[i].start = f6004000
+
+Welcome to the FOS kernel command prompt!
+Type 'help' for a list of commands.
+FOS> tstkmalloc 2
+==============================================
+MAKE SURE to have a FRESH RUN for this test
+(i.e. don't run any program/test before it)
+==============================================
+ki = 0
+s = 768
+arr[i].start = f6006000
+ki = 0
+s = 768
+arr[i].start = f6306000
+ki = 0
+s = 512
+arr[i].start = f6606000
+ki = 0
+s = 512
+arr[i].start = f6806000
+ki = 0
+s = 256
+arr[i].start = f6a06000
+ki = 0
+s = 256
+arr[i].start = f6b06000
+ki = 0
+s = 256
+arr[i].start = f6c06000
+ki = 0
+s = 256
+arr[i].start = f6d06000

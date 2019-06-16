@@ -796,19 +796,85 @@ void freeMem(struct Env* e, uint32 virtual_address, uint32 size)
 void __freeMem_with_buffering(struct Env* e, uint32 virtual_address, uint32 size)
 {
 	//TODO: [PROJECT 2019 - MS2 - [5] User Heap] freeMem() [Kernel Side]
-	// Write your code here, remove the panic and write your code
-
-	//This function should:
-	//1. Free ALL pages of the given range from the Page File
-	for(int i = 0 ; i < size ; i++)
-	{
-		pf_remove_env_page(e, virtual_address + i*PAGE_SIZE);
-	}
-	//2. Free ONLY pages that are resident in the working set from the memory
-
 	//3. Free any BUFFERED pages in the given range
-	//4. Removes ONLY the empty page tables (i.e. not used) (no pages are mapped in the table)
+	for(int i=0; i < size ;i++)
+	{
+		uint32 va = virtual_address + i *PAGE_SIZE;
+		uint32* ptr;
+		uint32 perm=pt_get_page_permissions(e,va );
+		pf_remove_env_page(e,va);
+		if((perm&PERM_BUFFERED)==0)
+		{
+			continue;
+		}
 
+		struct Frame_Info *fr=get_frame_info(e->env_page_directory,(void*)va,&ptr);
+
+
+		if(fr==NULL)
+		{
+			continue;
+		}
+
+		if(perm&PERM_MODIFIED)
+		{
+			LIST_REMOVE(&modified_frame_list,fr);
+		}
+		else
+		{
+			LIST_REMOVE(&free_frame_list,fr);
+		}
+		fr->isBuffered=0;
+		fr->environment=NULL;
+		pt_set_page_permissions(e,va,0,PERM_BUFFERED|PERM_MODIFIED);
+		free_frame(fr);
+		pt_clear_page_table_entry( e , va);
+	}
+//	// Write your code here, remove the panic and write your code
+//
+//	//2. Free ONLY pages that are resident in the working set from the memory
+
+		int j=0;
+		for(;j<e->page_WS_max_size; j++)
+		{
+			uint32 add=ROUNDDOWN(e->ptr_pageWorkingSet[j].virtual_address,PAGE_SIZE);
+			uint32 start=ROUNDDOWN(virtual_address,PAGE_SIZE);
+			uint32 end= ROUNDUP(virtual_address+size*PAGE_SIZE,PAGE_SIZE);
+			if(add>=start && add<end)
+			{
+				unmap_frame(e->env_page_directory,(void*)add);
+				pt_clear_page_table_entry( e , add);
+				env_page_ws_clear_entry(e, j);
+
+			}
+		}
+
+	//4. Removes ONLY the empty page tables (i.e. not used) (no pages are mapped in the table)
+	for(uint32 i=ROUNDDOWN(virtual_address,PAGE_SIZE*1024);i<virtual_address+size*PAGE_SIZE;i+=PAGE_SIZE*1024)
+
+	{
+		uint32 va=i;
+		uint32 * p1;
+		int k=0;
+		get_page_table(e->env_page_directory,(void*)va,&p1);
+		if(p1==NULL)
+		{
+			continue;
+		}
+		for(k;k<1024;k++)
+		{
+			if(p1[k]!=0||(p1[k]&PERM_PRESENT))
+			{
+				break;
+			}
+		}
+		if(k==1024)
+		{
+			pd_clear_page_dir_entry(e, va);
+			kfree(p1);
+		}
+
+	}
 	//Refer to the project presentation and documentation for details
 }
 
